@@ -1,25 +1,24 @@
 require('dotenv').config();
 const express = require('express');
-const cors    = require('cors');
 const rateLimit = require('express-rate-limit');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── CORS — должен быть ПЕРВЫМ до всего остального ──
-const corsOptions = {
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'x-agency-key', 'x-admin-key', 'Authorization'],
-  optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // обрабатываем preflight для всех роутов
+// ── CORS вручную — самый надёжный способ ──
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,x-agency-key,x-admin-key,Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(express.json({ limit: '2mb' }));
 app.use('/api/', rateLimit({ windowMs: 60000, max: 60 }));
 
-// Health
 app.get('/health', (_, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 app.get('/',       (_, res) => res.json({ service: 'Travel AI', status: 'running' }));
 
@@ -48,6 +47,6 @@ initDb().then(() => {
   });
 
 }).catch(err => {
-  console.error('❌ Ошибка БД:', err);
+  console.error('❌ Ошибка запуска БД:', err);
   process.exit(1);
 });
